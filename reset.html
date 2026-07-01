@@ -3,150 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Password - POS Manager</title>
-    <!-- Tailwind CSS -->
+    <title>Password Recovery - POS</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
-    
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
+    <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="bg-slate-50 min-h-screen flex flex-col items-center justify-center p-4">
 
     <div class="bg-white rounded-3xl shadow-xl border border-slate-100 w-full max-w-md p-8 sm:p-12 transition-all duration-500">
         
-        <!-- HEADER -->
-        <div class="text-center mb-8">
-            <div class="mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
-                <i data-lucide="key-round" class="w-8 h-8 text-blue-500"></i>
-            </div>
-            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Set New Password</h1>
-            <p class="text-slate-500 text-sm mt-2">Enter your new secure password below.</p>
-        </div>
-
-        <!-- ERROR MESSAGE BOX -->
+        <!-- GLOBAL ERROR BOX -->
         <div id="error-box" class="hidden bg-red-50 text-red-600 text-sm p-4 rounded-lg mb-6 flex items-start">
             <i data-lucide="alert-circle" class="w-5 h-5 mr-2 flex-shrink-0"></i>
             <span id="error-message"></span>
         </div>
 
-        <!-- PASSWORD FORM -->
-        <form id="reset-form" class="space-y-5">
-            <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-1">New Password</label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i data-lucide="lock" class="w-5 h-5 text-slate-400"></i>
-                    </div>
-                    <input type="password" id="password" required minlength="6"
-                        class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        placeholder="Min. 6 characters">
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-1">Confirm Password</label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i data-lucide="shield-check" class="w-5 h-5 text-slate-400"></i>
-                    </div>
-                    <input type="password" id="confirm-password" required minlength="6"
-                        class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        placeholder="Confirm your password">
-                </div>
-            </div>
-
-            <button type="submit" id="submit-btn"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition-colors flex items-center justify-center">
-                <span>Update Password</span>
-            </button>
-        </form>
-
-        <!-- SUCCESS MESSAGE (Hidden by default) -->
+        <!-- GLOBAL SUCCESS BOX -->
         <div id="success-box" class="hidden text-center py-6">
             <div class="mx-auto w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-6">
                 <i data-lucide="check-circle" class="w-10 h-10 text-emerald-500"></i>
             </div>
-            <h2 class="text-2xl font-black text-slate-900 mb-2">Password Updated!</h2>
-            <p class="text-slate-500">Your password has been changed successfully. You can now close this window and log into the POS application.</p>
+            <h2 id="success-title" class="text-2xl font-black text-slate-900 mb-2">Success!</h2>
+            <p id="success-message" class="text-slate-500">Action completed successfully.</p>
         </div>
 
-    </div>
+        <!-- ========================================== -->
+        <!-- VIEW 1: REQUEST EMAIL LINK                 -->
+        <!-- ========================================== -->
+        <div id="request-view" class="hidden">
+            <div class="text-center mb-8">
+                <div class="mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                    <i data-lucide="mail" class="w-8 h-8 text-blue-500"></i>
+                </div>
+                <h1 class="text-2xl font-black text-slate-900 tracking-tight">Reset Password</h1>
+                <p class="text-slate-500 text-sm mt-2">Enter your email to receive a recovery link.</p>
+            </div>
+            
+            <form id="request-form" class="space-y-5" onsubmit="event.preventDefault(); sendResetLink();">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Email Address</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="at-sign" class="w-5 h-5 text-slate-400"></i>
+                        </div>
+                        <input type="email" id="email-input" required
+                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="store@example.com">
+                    </div>
+                </div>
+                <button type="submit" id="request-btn"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition-colors flex justify-center">
+                    <span>Send Recovery Link</span>
+                </button>
+            </form>
+        </div>
 
-    <!-- Footer -->
-    <div class="mt-8 text-center">
-        <p class="text-sm font-semibold text-slate-400">ROYAL POS SYSTEM</p>
+        <!-- ========================================== -->
+        <!-- VIEW 2: SET NEW PASSWORD                   -->
+        <!-- ========================================== -->
+        <div id="reset-view" class="hidden">
+            <div class="text-center mb-8">
+                <div class="mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                    <i data-lucide="key-round" class="w-8 h-8 text-blue-500"></i>
+                </div>
+                <h1 class="text-2xl font-black text-slate-900 tracking-tight">Set New Password</h1>
+                <p class="text-slate-500 text-sm mt-2">Enter your new secure password below.</p>
+            </div>
+
+            <form id="reset-form" class="space-y-5" onsubmit="event.preventDefault(); updatePassword();">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">New Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="lock" class="w-5 h-5 text-slate-400"></i>
+                        </div>
+                        <input type="password" id="password" required minlength="6"
+                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="Min. 6 characters">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Confirm Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="shield-check" class="w-5 h-5 text-slate-400"></i>
+                        </div>
+                        <input type="password" id="confirm-password" required minlength="6"
+                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="Confirm your password">
+                    </div>
+                </div>
+
+                <button type="submit" id="update-btn"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition-colors flex justify-center">
+                    <span>Update Password</span>
+                </button>
+            </form>
+        </div>
+
     </div>
 
     <script>
         lucide.createIcons();
 
         // =========================================================================
-        // ⚠️ IMPORTANT: REPLACE THESE WITH YOUR SUPABASE URL AND ANON KEY!
+        // ⚠️ REPLACE THESE WITH YOUR ACTUAL SUPABASE URL AND ANON KEY
         // =========================================================================
         const SUPABASE_URL = 'https://gorlfdemcikfuqyucmyt.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_5OE2xfkw96CLeLz8OMRMgA_NLJ0loPJ';
         
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let supabase;
+        try {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } catch (e) {
+            showError("System Error: Supabase credentials missing in HTML file.");
+        }
 
-        const form = document.getElementById('reset-form');
-        const passInput = document.getElementById('password');
-        const confirmInput = document.getElementById('confirm-password');
-        const submitBtn = document.getElementById('submit-btn');
+        // HTML Elements
         const errorBox = document.getElementById('error-box');
         const errorMessage = document.getElementById('error-message');
         const successBox = document.getElementById('success-box');
+        const requestView = document.getElementById('request-view');
+        const resetView = document.getElementById('reset-view');
 
-        // Check if the URL actually contains a recovery token
+        // Check the URL to decide which view to show
+        // Supabase sends ?code=xxx (for PKCE) or #access_token=xxx
+        const urlParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        if (!hashParams.has('access_token') && !hashParams.has('error')) {
-            showError("No reset token found in the URL. Please request a new password reset link from the app.");
-            form.style.display = 'none';
+        
+        if (urlParams.has('code') || hashParams.has('access_token')) {
+            resetView.classList.remove('hidden');
+        } else {
+            requestView.classList.remove('hidden');
         }
 
-        if (hashParams.has('error')) {
-            showError(hashParams.get('error_description').replace(/\+/g, ' '));
-            form.style.display = 'none';
+        if (urlParams.has('error') || hashParams.has('error')) {
+            const err = urlParams.get('error_description') || hashParams.get('error_description');
+            showError(err.replace(/\+/g, ' '));
         }
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // Action 1: Send the email
+        async function sendResetLink() {
             errorBox.classList.add('hidden');
+            const email = document.getElementById('email-input').value;
+            const btn = document.getElementById('request-btn');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>';
+            lucide.createIcons();
 
-            const password = passInput.value;
-            const confirmPassword = confirmInput.value;
+            const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.href.split('?')[0].split('#')[0] // Redirect back to this exact page
+            });
 
-            if (password !== confirmPassword) {
+            if (error) {
+                showError(error.message);
+                btn.disabled = false;
+                btn.innerHTML = '<span>Send Recovery Link</span>';
+            } else {
+                requestView.classList.add('hidden');
+                document.getElementById('success-title').textContent = "Email Sent!";
+                document.getElementById('success-message').textContent = "Check your inbox for the recovery link.";
+                successBox.classList.remove('hidden');
+            }
+        }
+
+        // Action 2: Update the password
+        async function updatePassword() {
+            errorBox.classList.add('hidden');
+            const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirm-password').value;
+            const btn = document.getElementById('update-btn');
+
+            if (password !== confirm) {
                 showError("Passwords do not match.");
                 return;
             }
 
-            // UI Loading state
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>';
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>';
             lucide.createIcons();
 
-            // Tell Supabase to update the password securely
             const { data, error } = await supabase.auth.updateUser({
                 password: password
             });
 
             if (error) {
                 showError(error.message);
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<span>Update Password</span>';
+                btn.disabled = false;
+                btn.innerHTML = '<span>Update Password</span>';
             } else {
-                // Success!
-                form.style.display = 'none';
+                resetView.classList.add('hidden');
+                document.getElementById('success-title').textContent = "Password Updated!";
+                document.getElementById('success-message').textContent = "You can now close this window and log into the POS app.";
                 successBox.classList.remove('hidden');
             }
-        });
+        }
 
         function showError(msg) {
             errorMessage.textContent = msg;
