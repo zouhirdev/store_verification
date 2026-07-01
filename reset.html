@@ -74,9 +74,8 @@
         </div>
     </div>
 
-    <script>
-        // 1. GLOBAL CRASH DETECTOR (Catches copy/paste syntax errors instantly)
-        window.onerror = function(message, source, lineno, colno, error) {
+        <script>
+        window.onerror = function(message) {
             document.getElementById('error-box').classList.remove('hidden');
             document.getElementById('error-message').innerText = "System Crash: " + message;
             document.getElementById('submit-btn').disabled = false;
@@ -90,7 +89,10 @@
         const SUPABASE_URL = 'https://gorlfdemcikfuqyucmyt.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_5OE2xfkw96CLeLz8OMRMgA_NLJ0loPJ';
         
-        // 2. DOM Elements
+
+
+
+        
         const passInput = document.getElementById('password');
         const confirmInput = document.getElementById('confirm-password');
         const submitBtn = document.getElementById('submit-btn');
@@ -106,7 +108,26 @@
             errorBox.classList.remove('hidden');
         }
 
-        // 3. UI LOGIC (Bound immediately, regardless of Supabase status)
+        // Initialize Supabase immediately on page load
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // --- CRITICAL PKCE STEP ---
+        // If the URL has ?code=..., exchange it for a secure session immediately
+        window.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            
+            if (code) {
+                try {
+                    await supabase.auth.exchangeCodeForSession(code);
+                    console.log("Session successfully established from URL code.");
+                } catch (e) {
+                    showError("Invalid or expired reset link. Please request a new one.");
+                }
+            }
+        });
+
+        // Handle the Submit Button
         submitBtn.addEventListener('click', async () => {
             try {
                 errorBox.classList.add('hidden');
@@ -114,7 +135,6 @@
                 const password = passInput.value;
                 const confirmPassword = confirmInput.value;
 
-                // Basic UI Validation
                 if (!password || password.length < 6) {
                     showError("Password must be at least 6 characters.");
                     return;
@@ -124,48 +144,30 @@
                     return;
                 }
 
-                // Show spinner safely
                 submitBtn.disabled = true;
                 btnText.classList.add('hidden');
                 btnSpinner.classList.remove('hidden');
 
-                // 4. SUPABASE LOGIC (Only runs after validation passes)
-                if (typeof window.supabase === 'undefined') {
-                    throw new Error("Supabase SDK failed to load. Please disable your adblocker or check your internet connection.");
-                }
-
-                if (!SUPABASE_URL.startsWith('https://')) {
-                    throw new Error("Invalid SUPABASE_URL. It must start with https://");
-                }
-
-                // Initialize client
-                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-                // Wait a fraction of a second to ensure Supabase parsed the URL token
-                await new Promise(resolve => setTimeout(resolve, 500));
-
-                // Verify session exists
+                // Check if we actually have a session
                 const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-                
                 if (sessionError) throw sessionError;
                 
                 if (!session) {
                     throw new Error("Security session expired or missing. Please request a new password reset link from the app.");
                 }
 
-                // Update password
+                // Push the new password to Supabase
                 const { error: updateError } = await supabase.auth.updateUser({
                     password: password
                 });
 
                 if (updateError) throw updateError;
 
-                // Success UI
+                // Success!
                 formContainer.style.display = 'none';
                 successBox.classList.remove('hidden');
 
             } catch (err) {
-                // Safely handle ANY error and restore the button
                 showError(err.message || "An unknown error occurred.");
                 submitBtn.disabled = false;
                 btnText.classList.remove('hidden');
