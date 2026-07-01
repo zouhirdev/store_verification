@@ -74,24 +74,21 @@
         </div>
     </div>
 
-        <script>
+    <script>
+        // Global Crash Detector
         window.onerror = function(message) {
             document.getElementById('error-box').classList.remove('hidden');
-            document.getElementById('error-message').innerText = "System Crash: " + message;
+            document.getElementById('error-message').innerText = "System Error: " + message;
             document.getElementById('submit-btn').disabled = false;
         };
 
         lucide.createIcons();
 
         // =========================================================================
-        // ⚠️ YOUR CREDENTIALS HERE (Keep the single quotes!)
+        // ⚠️ YOUR CREDENTIALS HERE
         // =========================================================================
         const SUPABASE_URL = 'https://gorlfdemcikfuqyucmyt.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_5OE2xfkw96CLeLz8OMRMgA_NLJ0loPJ';
-        
-
-
-
         
         const passInput = document.getElementById('password');
         const confirmInput = document.getElementById('confirm-password');
@@ -108,26 +105,26 @@
             errorBox.classList.remove('hidden');
         }
 
-        // Initialize Supabase immediately on page load
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // ---> THE FIX: Renamed variable to supabaseClient
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // --- CRITICAL PKCE STEP ---
-        // If the URL has ?code=..., exchange it for a secure session immediately
+        // Process PKCE code immediately on page load
         window.addEventListener('DOMContentLoaded', async () => {
             const params = new URLSearchParams(window.location.search);
             const code = params.get('code');
             
             if (code) {
                 try {
-                    await supabase.auth.exchangeCodeForSession(code);
-                    console.log("Session successfully established from URL code.");
+                    // Automatically exchange the code for a secure session in the background
+                    await supabaseClient.auth.exchangeCodeForSession(code);
+                    console.log("Session established securely.");
                 } catch (e) {
                     showError("Invalid or expired reset link. Please request a new one.");
                 }
             }
         });
 
-        // Handle the Submit Button
+        // Submit Button Logic
         submitBtn.addEventListener('click', async () => {
             try {
                 errorBox.classList.add('hidden');
@@ -148,22 +145,22 @@
                 btnText.classList.add('hidden');
                 btnSpinner.classList.remove('hidden');
 
-                // Check if we actually have a session
-                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                // Ensure the session was actually established
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
                 if (sessionError) throw sessionError;
                 
                 if (!session) {
                     throw new Error("Security session expired or missing. Please request a new password reset link from the app.");
                 }
 
-                // Push the new password to Supabase
-                const { error: updateError } = await supabase.auth.updateUser({
+                // Update the password
+                const { error: updateError } = await supabaseClient.auth.updateUser({
                     password: password
                 });
 
                 if (updateError) throw updateError;
 
-                // Success!
+                // Show Success
                 formContainer.style.display = 'none';
                 successBox.classList.remove('hidden');
 
